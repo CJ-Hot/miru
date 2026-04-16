@@ -32,23 +32,11 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Upload Artifact - armeabi-v7a
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-          name: Miru-${{ github.event.number || 'dev' }}-armeabi-v7a.apk
-
-      - name: Upload Artifact - arm64-v8a
-        uses: actions/upload-artifact@v4
-        with:
-          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-          name: Miru-${{ github.event.number || 'dev' }}-arm64-v8a.apk
-
-      - name: Upload Artifact - x86_64
-        uses: actions/upload-artifact@v4
-        with:
-          path: build/app/outputs/flutter-apk/app-x86_64-release.apk
-          name: Miru-${{ github.event.number || 'dev' }}-x86_64.apk
+          name: apks
+          path: build/app/outputs/flutter-apk/
 
   build-and-release-windows:
     runs-on: windows-latest
@@ -62,10 +50,11 @@ jobs:
       - run: flutter build windows --release
       - name: Rename
         run: mv build/windows/x64/runner/Release build/windows/x64/runner/Miru-App
-      - uses: actions/upload-artifact@v4
+      - name: Upload Windows
+        uses: actions/upload-artifact@v4
         with:
+          name: windows
           path: build/windows/x64/runner/Miru-App
-          name: Miru-${{ github.event.number || 'dev' }}-windows.zip
 
   build-and-release-linux:
     runs-on: ubuntu-latest
@@ -95,7 +84,32 @@ jobs:
       - name: Rename
         run: mv build/linux/x64/release/bundle build/linux/x64/release/Miru-App
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Linux
+        uses: actions/upload-artifact@v4
         with:
+          name: linux
           path: build/linux/x64/release/Miru-App
-          name: Miru-${{ github.event.number || 'dev' }}-linux.zip
+
+  # ==========================================
+  # 🔥 自动发布到 GitHub Releases（核心新增）
+  # ==========================================
+  release:
+    needs: [build-and-release-android, build-and-release-windows, build-and-release-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Dev Build ${{ github.sha }}
+          tag_name: dev-${{ github.run_number }}
+          files: |
+            apks/*
+            windows/*
+            linux/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
