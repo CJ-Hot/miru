@@ -71,16 +71,21 @@ jobs:
   build-and-release-linux:
     runs-on: ubuntu-latest
     steps:
-      - name: Fix Ubuntu APT Sources (Noble 24.04)
+      # ==================== 彻底解决 apt-mirrors.txt 问题（关键）====================
+      - name: 彻底屏蔽失效的 apt-mirrors.txt 源
         run: |
-          sudo rm -f /etc/apt/apt-mirrors.txt
-          echo "deb http://archive.ubuntu.com/ubuntu noble main restricted universe multiverse" | sudo tee /etc/apt/sources.list
-          echo "deb http://archive.ubuntu.com/ubuntu noble-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-          echo "deb http://archive.ubuntu.com/ubuntu noble-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+          sudo rm -rf /etc/apt/apt-mirrors.txt /etc/apt/apt-mirrors.txt.d/
+          sudo touch /etc/apt/apt-mirrors.txt
+          sudo chattr +i /etc/apt/apt-mirrors.txt
+          sudo tee /etc/apt/sources.list > /dev/null <<'EOF'
+deb http://archive.ubuntu.com/ubuntu noble main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu noble-updates main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu noble-security main restricted universe multiverse
+EOF
           sudo apt clean
-          sudo apt update --fix-missing -y
+          sudo apt update -y --fix-missing || true
 
-      - name: Install Dependencies
+      - name: 安装项目依赖
         run: sudo apt-get install -y --fix-missing ninja-build build-essential libgtk-3-dev libmpv-dev mpv
 
       - uses: actions/checkout@v4
