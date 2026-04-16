@@ -1,0 +1,105 @@
+#这是一个帮助你开始操作操作的基本工作流程
+
+名称：Dev Build CI
+
+关于：
+  pull_request：
+    分支：[“主线”、“开发者”]
+  推：
+    分支：“开发者”]
+
+#一个工作流运行由一个或多个作业组成，这些作业可以顺序或并行运行
+职位：
+
+  #该工作流程包含一个名为“构建”的单一作业
+  构建发布安卓：
+    #工作将依赖的跑者类型
+    runs-on： ubuntu-latest
+
+    #步骤表示一系列任务，作为作业的一部分执行
+    步骤：
+      #借出你的仓库$GITHUB_WORKSPACE，这样你的工作单位就能访问它
+      - 用途：行动/checkout@v4
+      - 名称：颤动动作
+        用途：Subosito/Flutter-action@v2
+        与：
+          颤音版本：3.16.8 
+          频道：稳定
+      - 名称：解码密钥存储
+        运行：|
+Echo $ENCODED_KEYSTORE |base64 -di > android/app/keystore.jks
+        环境：
+          ENCODED_KEYSTORE：${{ 秘密。钥匙库 }}
+
+      - 跑：Flutter pub get
+      # 打包apk
+      - 名称：Collect Apks
+        运行：Flutter build apk --release --split-per-abi
+        环境：
+          KEYSTORE_PASSWORD：${{ 秘密。KEYSTORE_PASSWORD }}
+          KEY_ALIAS：${{ 秘密。KEY_ALIAS }}
+          KEY_PASSWORD：${{ 秘密。KEY_PASSWORD}}
+
+      # 发布安装包
+      - 名称：上传文物 - armeabi-v7a
+        用途：动作/上传-artifact@v4
+        与：
+          路径：“build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk”
+          姓名：Miru-pr-${{ github.event.pull_request.number }}-armeabi-v7a.apk
+      - 名称：上传文物 - arm64-v8a
+        用途：动作/上传-artifact@v4
+        与：
+          路径：“build/app/outputs/flutter-apk/app-arm64-v8a-release.apk”
+          姓名：Miru-pr-${{ github.event.pull_request.number }}-arm64-v8a.apk
+      - 名称：上传遗迹 - x86
+        用途：动作/上传-artifact@v4
+        与：
+          路径：“build/app/outputs/flutter-apk/app-x86_64-release.apk”
+          姓名：Miru-pr-${{ github.event.pull_request.number }}-x86_64.apk
+
+  构建与发布窗口：
+    运行：Windows-Latest
+
+    步骤：
+      - 用途：行动/checkout@v4
+      - 用途：Subosito/Flutter-action@v2.12.0
+        与：
+          颤音版本：3.16.8 
+          频道：稳定
+      - 名称：安装项目依赖
+        跑：Flutter pub get
+      - 名称：建造神器
+        运行：Flutter 构建 Windows -- 发布
+      - name： Rename Release Directory Name to Miru-App # 为了解压缩后更好看一点
+        运行：|
+mv build/windows/x64/runner/Release build/windows/x64/runner/Miru-App
+      # 发布安装包
+      - 名称：上传文物
+        用途：动作/上传-artifact@v4
+        与：
+          path：“build/windows/x64/runner/Miru-App”
+          姓名：Miru-pr-${{ github.event.pull_request.number }}-windows.zip
+
+  构建与发布 Linux：
+    runs-on： ubuntu-latest
+    步骤：
+      - 名称：安装依赖
+        run： sudo apt-get install ninja-build build-essential libgtk-3-dev libmpv-dev mpv
+      - 用途：行动/checkout@v4
+      - 用途：Subosito/Flutter-action@v2.12.0
+        与：
+          颤音版本：3.16.8 
+          频道：稳定
+      - 名称：安装项目依赖
+        跑：Flutter pub get
+      - 名称：建造神器
+        运行：Flutter build Linux --发布
+      - name： Rename Release Directory Name to Miru-App # 为了解压缩后更好看一点
+        运行：|
+mv build/linux/x64/release/bundle build/linux/x64/release/Miru-App
+      # 发布安装包
+      - 名称：上传文物
+        用途：动作/上传-artifact@v4
+        与：
+          path：“build/linux/x64/release/Miru-App”
+          姓名：Miru-pr-${{ github.event.pull_request.number }}-linux.zip
