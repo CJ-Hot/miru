@@ -60,9 +60,8 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: flutter build windows --release
-      - name: Rename Release Directory
-        run: |
-          mv build/windows/x64/runner/Release build/windows/x64/runner/Miru-App
+      - name: Rename
+        run: mv build/windows/x64/runner/Release build/windows/x64/runner/Miru-App
       - uses: actions/upload-artifact@v4
         with:
           path: build/windows/x64/runner/Miru-App
@@ -71,19 +70,15 @@ jobs:
   build-and-release-linux:
     runs-on: ubuntu-latest
     steps:
-      - name: Fix APT Sources & Block mirror-file
+      - name: Fix Ubuntu APT Sources
         run: |
-          # 彻底删除并锁定失效的 apt-mirrors.txt
-          sudo rm -rf /etc/apt/apt-mirrors.txt /etc/apt/apt-mirrors.txt.d/
-          sudo touch /etc/apt/apt-mirrors.txt
-          sudo chattr +i /etc/apt/apt-mirrors.txt
-          # 用echo逐行写入官方源，完全规避YAML多行语法问题
-          sudo echo "deb http://archive.ubuntu.com/ubuntu noble main restricted universe multiverse" | sudo tee /etc/apt/sources.list
-          sudo echo "deb http://archive.ubuntu.com/ubuntu noble-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-          sudo echo "deb http://archive.ubuntu.com/ubuntu noble-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-          # 清理缓存并更新
+          sudo rm -f /etc/apt/sources.list.d/*
+          sudo rm -f /etc/apt/apt-mirrors.txt
+          echo "deb http://archive.ubuntu.com/ubuntu noble main restricted universe multiverse" | sudo tee /etc/apt/sources.list
+          echo "deb http://archive.ubuntu.com/ubuntu noble-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+          echo "deb http://archive.ubuntu.com/ubuntu noble-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
           sudo apt clean
-          sudo apt update -y --fix-missing
+          sudo apt update -y || true
 
       - name: Install Dependencies
         run: sudo apt-get install -y --fix-missing ninja-build build-essential libgtk-3-dev libmpv-dev mpv
@@ -97,7 +92,7 @@ jobs:
       - run: flutter pub get
       - run: flutter build linux --release
 
-      - name: Rename Release Directory
+      - name: Rename
         run: mv build/linux/x64/release/bundle build/linux/x64/release/Miru-App
 
       - uses: actions/upload-artifact@v4
